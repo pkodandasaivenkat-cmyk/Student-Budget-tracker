@@ -942,6 +942,7 @@
     renderAll();
     playAudioChime('success');
     showToast(`Signed in as ${acc.name} (${acc.role})`);
+    checkIncomingShare();
   }
 
   function handleLogout() {
@@ -1851,7 +1852,23 @@
       showToast(`Reset to demo data. Demo password: ${DEMO_PASSWORD}`);
     });
   }
-
+  // --------------------------------------------------------------------------
+  // Incoming shared text / ?sms= links
+  // --------------------------------------------------------------------------
+    function checkIncomingShare() {
+      const qs = new URLSearchParams(location.search);
+      const text = qs.get('sms') || [qs.get('title'), qs.get('text')].filter(Boolean).join(' ');
+      if (text) {
+        lsSet('cl_pending_share', text);
+        history.replaceState(null, '', location.pathname);
+      }
+      const pending = lsGet('cl_pending_share', null);
+      if (pending && state.isLoggedIn) {
+        lsRemove('cl_pending_share');
+        const p = classifySmsText(pending);
+        handleIncomingNotification('Shared SMS', pending, p.amount, p.merchant, p.category, p.type);
+      }
+    }
   // --------------------------------------------------------------------------
   // Entry point
   // --------------------------------------------------------------------------
@@ -1860,6 +1877,7 @@
     initEventListeners();
     renderAll();
     if (!state.isLoggedIn) openLoginModal(state.currentId);
+    checkIncomingShare();
     console.log('🎓 Campus Ledger (EDITH AI 2.5) initialized.');
   });
 })();
